@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import co.edu.unab.spfbayterangarita.petpulse.presentation.components.EmptyPetsState
+import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.DailyLogViewModel
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.PetViewModel
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetCard
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetCream
@@ -33,10 +34,12 @@ import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetTextGray
 
 @Composable
 fun MedicalRecordScreen(
-    petViewModel: PetViewModel
+    petViewModel: PetViewModel,
+    dailyLogViewModel: DailyLogViewModel
 ) {
     val pets = petViewModel.pets.collectAsState().value
     val selectedPetId = petViewModel.selectedPetId.collectAsState().value
+    val dailyLogs = dailyLogViewModel.dailyLogs.collectAsState().value
 
     val selectedPet = pets.firstOrNull { it.id == selectedPetId }
         ?: pets.firstOrNull()
@@ -45,6 +48,14 @@ fun MedicalRecordScreen(
         EmptyPetsState(message = "Agrega una mascota para construir su expediente médico.")
         return
     }
+
+    val recentLogs = dailyLogs
+        .filter { it.petId == selectedPet.id }
+        .takeLast(5)
+        .reversed()
+    val recentSymptoms = recentLogs
+        .flatMap { it.symptoms }
+        .distinct()
 
     Column(
         modifier = Modifier
@@ -94,11 +105,11 @@ fun MedicalRecordScreen(
                 Text("Resumen médico", fontWeight = FontWeight.Bold)
 
                 Text("Especie: ${selectedPet.species}")
-                Text("Raza: ${selectedPet.breed}")
+                Text("Raza: ${selectedPet.breed.ifBlank { "No registrada" }}")
                 Text("Edad: ${selectedPet.ageText}")
                 Text("Peso: ${selectedPet.weightKg} kg")
-                Text("Tipo de sangre: ${selectedPet.bloodType}")
-                Text("Veterinario: ${selectedPet.veterinarianName}")
+                Text("Tipo de sangre: ${selectedPet.bloodType.ifBlank { "No registrado" }}")
+                Text("Veterinario: ${selectedPet.veterinarianName.ifBlank { "No registrado" }}")
             }
         }
 
@@ -123,21 +134,7 @@ fun MedicalRecordScreen(
                 )
 
                 Text(
-                    text = "Al día · Próxima Jul 28 2025",
-                    color = PetTextGray
-                )
-
-                Text("Polivalente", fontWeight = FontWeight.Medium)
-
-                LinearProgressIndicator(
-                    progress = { 0.75f },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = PetGreen,
-                    trackColor = PetSoftGreen
-                )
-
-                Text(
-                    text = "Pendiente de refuerzo",
+                    text = "Al día · Revisa la agenda para próximos refuerzos",
                     color = PetTextGray
                 )
             }
@@ -152,12 +149,36 @@ fun MedicalRecordScreen(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Exportación veterinaria", fontWeight = FontWeight.Bold)
+                Text("Reporte reciente", fontWeight = FontWeight.Bold)
 
-                Text(
-                    text = "Aquí se generará el resumen PDF de los últimos 30 días con síntomas, comportamiento, dieta y registros médicos.",
-                    color = PetTextGray
-                )
+                if (recentLogs.isEmpty()) {
+                    Text(
+                        text = "Aún no hay registros diarios para ${selectedPet.name}.",
+                        color = PetTextGray
+                    )
+                } else {
+                    Text(
+                        text = "Síntomas recientes: ${
+                            if (recentSymptoms.isEmpty()) "Sin síntomas reportados"
+                            else recentSymptoms.joinToString(", ")
+                        }",
+                        color = PetTextGray
+                    )
+
+                    recentLogs.forEach { log ->
+                        Text(
+                            text = "${log.date}: ánimo ${log.mood}, apetito ${log.appetite}, actividad ${log.activity}",
+                            color = PetTextGray
+                        )
+
+                        if (log.notes.isNotBlank()) {
+                            Text(
+                                text = "Nota: ${log.notes}",
+                                color = PetTextGray
+                            )
+                        }
+                    }
+                }
             }
         }
     }

@@ -169,7 +169,8 @@ fun PetPulseApp() {
 
             composable(Routes.Medical.route) {
                 MedicalRecordScreen(
-                    petViewModel = petViewModel
+                    petViewModel = petViewModel,
+                    dailyLogViewModel = dailyLogViewModel
                 )
             }
 

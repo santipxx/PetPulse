@@ -1,9 +1,11 @@
 package co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel
 
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import co.edu.unab.spfbayterangarita.petpulse.data.model.Pet
 import co.edu.unab.spfbayterangarita.petpulse.data.remote.PetRemoteDataSource
+import co.edu.unab.spfbayterangarita.petpulse.util.calculateAgeText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,7 +65,8 @@ class PetViewModel : ViewModel() {
         species: String,
         breed: String,
         birthDate: String,
-        photoBitmap: Bitmap?
+        birthDateMillis: Long,
+        photoUri: Uri?
     ) {
         val userId = currentUserId ?: return
         val petId = "pet_${System.currentTimeMillis()}"
@@ -74,7 +77,7 @@ class PetViewModel : ViewModel() {
             species = species,
             breed = breed,
             birthDate = birthDate,
-            ageText = "Sin calcular",
+            ageText = calculateAgeText(birthDateMillis),
             level = 1,
             xp = 0,
             currentStreak = 0,
@@ -85,8 +88,8 @@ class PetViewModel : ViewModel() {
         _selectedPetId.value = petId
         remoteDataSource.savePet(userId, newPet)
 
-        if (photoBitmap != null) {
-            updatePetPhoto(petId, photoBitmap)
+        if (photoUri != null) {
+            updatePetPhoto(petId, photoUri)
         }
     }
 
@@ -107,6 +110,25 @@ class PetViewModel : ViewModel() {
             userId = userId,
             petId = petId,
             bitmap = photoBitmap,
+            onPhotoUploaded = { photoUrl ->
+                _pets.value = _pets.value.map { pet ->
+                    if (pet.id == petId) {
+                        pet.copy(photoUrl = photoUrl)
+                    } else {
+                        pet
+                    }
+                }
+            }
+        )
+    }
+
+    fun updatePetPhoto(petId: String, photoUri: Uri) {
+        val userId = currentUserId ?: return
+
+        remoteDataSource.uploadPetPhoto(
+            userId = userId,
+            petId = petId,
+            photoUri = photoUri,
             onPhotoUploaded = { photoUrl ->
                 _pets.value = _pets.value.map { pet ->
                     if (pet.id == petId) {

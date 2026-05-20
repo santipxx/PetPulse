@@ -186,7 +186,8 @@ fun DailyRegisterScreen(
                     hydrationLevel = hydration.floatValue,
                     activity = selectedActivity.value,
                     symptoms = selectedSymptoms.toList(),
-                    notes = notes.value
+                    notes = notes.value,
+                    createdAtMillis = System.currentTimeMillis()
                 )
 
                 dailyLogViewModel.saveDailyLog(newLog)

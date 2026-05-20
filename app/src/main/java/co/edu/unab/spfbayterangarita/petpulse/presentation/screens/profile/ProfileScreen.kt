@@ -19,10 +19,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Pets
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -62,12 +62,12 @@ fun ProfileScreen(
     val selectedPet = pets.firstOrNull { it.id == selectedPetId }
         ?: pets.firstOrNull()
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
         val pet = selectedPet
-        if (bitmap != null && pet != null) {
-            petViewModel.updatePetPhoto(pet.id, bitmap)
+        if (uri != null && pet != null) {
+            petViewModel.updatePetPhoto(pet.id, uri)
         }
     }
 
@@ -130,13 +130,13 @@ fun ProfileScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Button(
-                onClick = { cameraLauncher.launch(null) },
+                onClick = { photoPickerLauncher.launch("image/*") },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = PetGreen),
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Icon(Icons.Rounded.CameraAlt, contentDescription = null)
-                Text("Foto")
+                Icon(Icons.Rounded.PhotoCamera, contentDescription = null)
+                Text("Subir foto")
             }
 
             Button(

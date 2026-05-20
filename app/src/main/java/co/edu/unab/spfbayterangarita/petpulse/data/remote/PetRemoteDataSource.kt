@@ -1,6 +1,7 @@
 package co.edu.unab.spfbayterangarita.petpulse.data.remote
 
 import android.graphics.Bitmap
+import android.net.Uri
 import co.edu.unab.spfbayterangarita.petpulse.data.model.Pet
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
@@ -76,6 +77,28 @@ class PetRemoteDataSource {
             .child("users/$userId/pets/$petId/profile.jpg")
 
         photoReference.putBytes(outputStream.toByteArray())
+            .continueWithTask { photoReference.downloadUrl }
+            .addOnSuccessListener { uri ->
+                val photoUrl = uri.toString()
+
+                petsCollection(userId)
+                    .document(petId)
+                    .set(mapOf("photoUrl" to photoUrl), SetOptions.merge())
+
+                onPhotoUploaded(photoUrl)
+            }
+    }
+
+    fun uploadPetPhoto(
+        userId: String,
+        petId: String,
+        photoUri: Uri,
+        onPhotoUploaded: (String) -> Unit
+    ) {
+        val photoReference = storage.reference
+            .child("users/$userId/pets/$petId/profile.jpg")
+
+        photoReference.putFile(photoUri)
             .continueWithTask { photoReference.downloadUrl }
             .addOnSuccessListener { uri ->
                 val photoUrl = uri.toString()

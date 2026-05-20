@@ -9,5 +9,6 @@ data class DailyLog(
     val hydrationLevel: Float = 0.5f,
     val activity: String = "",
     val symptoms: List<String> = emptyList(),
-    val notes: String = ""
+    val notes: String = "",
+    val createdAtMillis: Long = 0L
 )

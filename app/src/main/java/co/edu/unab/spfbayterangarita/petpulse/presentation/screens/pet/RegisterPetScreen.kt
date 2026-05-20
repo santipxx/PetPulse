@@ -1,9 +1,8 @@
 package co.edu.unab.spfbayterangarita.petpulse.presentation.screens.pet
 
-import android.graphics.Bitmap
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,30 +18,40 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cake
-import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.PetViewModel
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetCream
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetGreen
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetSoftGreen
+import co.edu.unab.spfbayterangarita.petpulse.util.calculateAgeText
+import co.edu.unab.spfbayterangarita.petpulse.util.formatBirthDate
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterPetScreen(
     petViewModel: PetViewModel,
@@ -50,16 +59,44 @@ fun RegisterPetScreen(
 ) {
     val petName = remember { mutableStateOf("") }
     val breed = remember { mutableStateOf("") }
-    val birthDate = remember { mutableStateOf("") }
     val selectedSpecies = remember { mutableStateOf("Perro") }
-    val photoBitmap = remember { mutableStateOf<Bitmap?>(null) }
+    val selectedPhotoUri = remember { mutableStateOf<Uri?>(null) }
+    val birthDateMillis = remember { mutableLongStateOf(0L) }
     val nameHasError = remember { mutableStateOf(false) }
+    val showDateDialog = remember { mutableStateOf(false) }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        if (bitmap != null) {
-            photoBitmap.value = bitmap
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            selectedPhotoUri.value = uri
+        }
+    }
+
+    if (showDateDialog.value) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = birthDateMillis.longValue.takeIf { it > 0L }
+        )
+
+        DatePickerDialog(
+            onDismissRequest = { showDateDialog.value = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        birthDateMillis.longValue = datePickerState.selectedDateMillis ?: 0L
+                        showDateDialog.value = false
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDateDialog.value = false }) {
+                    Text("Cancelar")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 
@@ -77,8 +114,9 @@ fun RegisterPetScreen(
                         name = petName.value.trim(),
                         species = selectedSpecies.value,
                         breed = breed.value.trim(),
-                        birthDate = birthDate.value.trim(),
-                        photoBitmap = photoBitmap.value
+                        birthDate = formatBirthDate(birthDateMillis.longValue),
+                        birthDateMillis = birthDateMillis.longValue,
+                        photoUri = selectedPhotoUri.value
                     )
                     onContinueClick()
                 },
@@ -117,11 +155,11 @@ fun RegisterPetScreen(
                     .background(PetSoftGreen),
                 contentAlignment = Alignment.Center
             ) {
-                val bitmap = photoBitmap.value
+                val photoUri = selectedPhotoUri.value
 
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
+                if (photoUri != null) {
+                    AsyncImage(
+                        model = photoUri,
                         contentDescription = "Foto de la mascota",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -140,16 +178,16 @@ fun RegisterPetScreen(
 
             Button(
                 onClick = {
-                    cameraLauncher.launch(null)
+                    photoPickerLauncher.launch("image/*")
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = PetGreen),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.CameraAlt,
+                    imageVector = Icons.Rounded.PhotoCamera,
                     contentDescription = null
                 )
-                Text("Tomar foto")
+                Text("Subir foto")
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -206,19 +244,23 @@ fun RegisterPetScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = birthDate.value,
-                onValueChange = { birthDate.value = it },
-                label = { Text("Fecha de nacimiento") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Rounded.Cake,
-                        contentDescription = null
-                    )
-                },
+            OutlinedButton(
+                onClick = { showDateDialog.value = true },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp)
-            )
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Cake,
+                    contentDescription = null
+                )
+                Text(
+                    text = if (birthDateMillis.longValue > 0L) {
+                        "${formatBirthDate(birthDateMillis.longValue)} · ${calculateAgeText(birthDateMillis.longValue)}"
+                    } else {
+                        "Fecha de nacimiento"
+                    }
+                )
+            }
         }
     }
 }

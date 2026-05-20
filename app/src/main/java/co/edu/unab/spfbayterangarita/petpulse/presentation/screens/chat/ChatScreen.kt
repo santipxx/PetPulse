@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +20,7 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Pets
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import co.edu.unab.spfbayterangarita.petpulse.data.model.ChatMessage
+import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.ChatAnalysisType
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.ChatViewModel
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.DailyLogViewModel
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.PetViewModel
@@ -42,6 +46,8 @@ import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetTextDark
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetTextGray
 import co.edu.unab.spfbayterangarita.petpulse.presentation.components.EmptyPetsState
 import co.edu.unab.spfbayterangarita.petpulse.presentation.components.PetSelector
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     petViewModel: PetViewModel,
@@ -64,6 +70,7 @@ fun ChatScreen(
 
     val messages = chatViewModel.messages.collectAsState().value
     val userInput = remember { mutableStateOf("") }
+    val selectedRangeDays = remember { mutableStateOf(15) }
 
     Column(
         modifier = Modifier
@@ -107,6 +114,19 @@ fun ChatScreen(
                 .distinct()
         )
 
+        ChatOptionsPanel(
+            selectedRangeDays = selectedRangeDays.value,
+            onRangeSelected = { selectedRangeDays.value = it },
+            onAnalysisSelected = { analysisType ->
+                chatViewModel.requestGuidedAnalysis(
+                    analysisType = analysisType,
+                    selectedPet = selectedPet,
+                    recentLogs = selectedPetLogs,
+                    rangeDays = selectedRangeDays.value
+                )
+            }
+        )
+
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -138,7 +158,8 @@ fun ChatScreen(
                     chatViewModel.sendMessage(
                         text = userInput.value,
                         selectedPet = selectedPet,
-                        recentLogs = selectedPetLogs
+                        recentLogs = selectedPetLogs,
+                        rangeDays = selectedRangeDays.value
                     )
                     userInput.value = ""
                 }
@@ -209,6 +230,59 @@ fun ChatBubble(
                 text = message.message,
                 color = if (message.isFromUser) PetCream else PetTextDark
             )
+        }
+    }
+}
+
+@Composable
+fun ChatOptionsPanel(
+    selectedRangeDays: Int,
+    onRangeSelected: (Int) -> Unit,
+    onAnalysisSelected: (ChatAnalysisType) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = PetCard),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Analizar rango",
+                fontWeight = FontWeight.Bold
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(15, 30).forEach { days ->
+                    FilterChip(
+                        selected = selectedRangeDays == days,
+                        onClick = { onRangeSelected(days) },
+                        label = { Text("$days días") }
+                    )
+                }
+            }
+
+            Text(
+                text = "Opciones rápidas",
+                fontWeight = FontWeight.Bold
+            )
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ChatAnalysisType.entries.forEach { analysisType ->
+                    FilterChip(
+                        selected = false,
+                        onClick = { onAnalysisSelected(analysisType) },
+                        label = { Text(analysisType.label) }
+                    )
+                }
+            }
         }
     }
 }
