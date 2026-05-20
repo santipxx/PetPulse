@@ -12,4 +12,5 @@ sealed class Routes(val route: String) {
 
     data object Weather : Routes("weather")
     data object Notifications : Routes("notifications")
+    data object DailyRegister : Routes("daily_register")
 }

@@ -16,10 +16,20 @@ import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.medical.Medic
 import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.onboarding.WelcomeScreen
 import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.pet.RegisterPetScreen
 import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.profile.ProfileScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.AppointmentViewModel
+import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.ChatViewModel
+import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.DailyLogViewModel
+import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.PetViewModel
+import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.calendar.DailyRegisterScreen
 
 @Composable
 fun PetPulseApp() {
     val navController = rememberNavController()
+    val petViewModel: PetViewModel = viewModel()
+    val dailyLogViewModel: DailyLogViewModel = viewModel()
+    val appointmentViewModel: AppointmentViewModel = viewModel()
+    val chatViewModel: ChatViewModel = viewModel()
 
     val currentRoute = navController
         .currentBackStackEntryAsState()
@@ -69,23 +79,52 @@ fun PetPulseApp() {
             }
 
             composable(Routes.Home.route) {
-                HomeScreen()
+                HomeScreen(
+                    petViewModel = petViewModel
+
+                )
             }
 
             composable(Routes.Agenda.route) {
-                AgendaScreen()
+                AgendaScreen(
+                    petViewModel = petViewModel,
+                    dailyLogViewModel = dailyLogViewModel,
+                    onDailyRegisterClick = {
+                        navController.navigate(Routes.DailyRegister.route)
+                    }
+                )
+            }
+            composable(Routes.DailyRegister.route) {
+                DailyRegisterScreen(
+                    petViewModel = petViewModel,
+                    dailyLogViewModel = dailyLogViewModel,
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onSaveClick = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable(Routes.Medical.route) {
-                MedicalRecordScreen()
+                MedicalRecordScreen(
+                    petViewModel = petViewModel
+                )
             }
 
             composable(Routes.Chat.route) {
-                ChatScreen()
+                ChatScreen(
+                    petViewModel = petViewModel,
+                    dailyLogViewModel = dailyLogViewModel,
+                    chatViewModel = chatViewModel
+                )
             }
 
             composable(Routes.Profile.route) {
-                ProfileScreen()
+                ProfileScreen(
+                    petViewModel = petViewModel
+                )
             }
         }
     }

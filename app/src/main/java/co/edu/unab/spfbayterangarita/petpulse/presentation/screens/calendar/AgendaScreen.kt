@@ -25,21 +25,46 @@ import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetCard
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetCream
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetGreen
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetTextGray
-
+import androidx.compose.runtime.collectAsState
+import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.DailyLogViewModel
+import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.PetViewModel
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import co.edu.unab.spfbayterangarita.petpulse.presentation.components.PetSelector
 @Composable
-fun AgendaScreen() {
+fun AgendaScreen(
+    petViewModel: PetViewModel,
+    dailyLogViewModel: DailyLogViewModel,
+    onDailyRegisterClick: () -> Unit
+) {
+    val pets = petViewModel.pets.collectAsState().value
+    val selectedPetId = petViewModel.selectedPetId.collectAsState().value
+
+    val selectedPet = pets.firstOrNull { it.id == selectedPetId }
+        ?: pets.first()
+
+    val logs = dailyLogViewModel.dailyLogs.collectAsState().value
+    val selectedPetLogs = logs.filter { it.petId == selectedPet.id }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(PetCream)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         Text(
-            text = "Agenda de Max",
+            text = "Agenda de ${selectedPet.name}",
             fontWeight = FontWeight.Bold
         )
-
+        PetSelector(
+            pets = pets,
+            selectedPetId = selectedPetId,
+            onPetSelected = { petId ->
+                petViewModel.selectPet(petId)
+            }
+        )
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = PetCard),
@@ -100,6 +125,39 @@ fun AgendaScreen() {
             shape = RoundedCornerShape(14.dp)
         ) {
             Text("Agregar evento")
+        }
+        Button(
+            onClick = onDailyRegisterClick,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = PetGreen),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text("Registrar síntomas de hoy")
+        }
+        if (selectedPetLogs.isNotEmpty()) {
+            val lastLog = selectedPetLogs.last()
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = PetCard),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Último registro", fontWeight = FontWeight.Bold)
+                    Text("Ánimo: ${lastLog.mood}")
+                    Text("Apetito: ${lastLog.appetite}")
+                    Text("Actividad: ${lastLog.activity}")
+                    Text(
+                        text = "Síntomas: ${
+                            if (lastLog.symptoms.isEmpty()) "Sin síntomas"
+                            else lastLog.symptoms.joinToString(", ")
+                        }"
+                    )
+                }
+            }
         }
     }
 }
