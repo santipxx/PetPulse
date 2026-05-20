@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Alignment
+import co.edu.unab.spfbayterangarita.petpulse.presentation.components.EmptyPetsState
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DailyRegisterScreen(
@@ -49,7 +50,12 @@ fun DailyRegisterScreen(
     val selectedPetId = petViewModel.selectedPetId.collectAsState().value
 
     val selectedPet = pets.firstOrNull { it.id == selectedPetId }
-        ?: pets.first()
+        ?: pets.firstOrNull()
+
+    if (selectedPet == null) {
+        EmptyPetsState(message = "Primero agrega una mascota para registrar su estado diario.")
+        return
+    }
 
     val selectedMood = remember { mutableStateOf("Bien") }
     val selectedAppetite = remember { mutableStateOf("Completo") }

@@ -14,5 +14,6 @@ data class Pet(
     val level: Int = 1,
     val xp: Int = 0,
     val currentStreak: Int = 0,
-    val consistencyPercent: Int = 0
+    val consistencyPercent: Int = 0,
+    val photoUrl: String = ""
 )

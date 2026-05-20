@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "167149547257",
+    "project_id": "petpulse-a04c2",
+    "storage_bucket": "petpulse-a04c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:167149547257:android:d9a3d9b14f1e92b4c73c28",
+        "android_client_info": {
+          "package_name": "co.edu.unab.spfbayterangarita.petpulse"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvgCR3uFUaRMcW3RD-HNqo8gRgK5k_048"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

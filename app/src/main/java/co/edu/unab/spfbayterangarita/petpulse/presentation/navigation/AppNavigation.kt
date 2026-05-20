@@ -3,12 +3,18 @@ package co.edu.unab.spfbayterangarita.petpulse.presentation.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import co.edu.unab.spfbayterangarita.petpulse.presentation.components.BottomNavigationBar
+import co.edu.unab.spfbayterangarita.petpulse.presentation.components.NotificationPermissionEffect
+import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.auth.AuthScreen
 import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.calendar.AgendaScreen
 import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.chat.ChatScreen
 import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.home.HomeScreen
@@ -17,7 +23,9 @@ import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.onboarding.We
 import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.pet.RegisterPetScreen
 import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.profile.ProfileScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
+import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.calendar.NewAppointmentScreen
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.AppointmentViewModel
+import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.AuthViewModel
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.ChatViewModel
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.DailyLogViewModel
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.PetViewModel
@@ -26,10 +34,14 @@ import co.edu.unab.spfbayterangarita.petpulse.presentation.screens.calendar.Dail
 @Composable
 fun PetPulseApp() {
     val navController = rememberNavController()
+    val authViewModel: AuthViewModel = viewModel()
     val petViewModel: PetViewModel = viewModel()
     val dailyLogViewModel: DailyLogViewModel = viewModel()
     val appointmentViewModel: AppointmentViewModel = viewModel()
     val chatViewModel: ChatViewModel = viewModel()
+    val authState = authViewModel.uiState.collectAsState().value
+
+    NotificationPermissionEffect(enabled = authState.session != null)
 
     val currentRoute = navController
         .currentBackStackEntryAsState()
@@ -55,9 +67,27 @@ fun PetPulseApp() {
 
         NavHost(
             navController = navController,
-            startDestination = Routes.Welcome.route,
+            startDestination = if (authState.session == null) {
+                Routes.Auth.route
+            } else {
+                Routes.Home.route
+            },
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable(Routes.Auth.route) {
+                AuthScreen(
+                    authViewModel = authViewModel,
+                    onAuthenticated = {
+                        navController.navigate(Routes.Home.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+
             composable(Routes.Welcome.route) {
                 WelcomeScreen(
                     onStartClick = {
@@ -68,11 +98,13 @@ fun PetPulseApp() {
 
             composable(Routes.RegisterPet.route) {
                 RegisterPetScreen(
+                    petViewModel = petViewModel,
                     onContinueClick = {
                         navController.navigate(Routes.Home.route) {
-                            popUpTo(Routes.Welcome.route) {
+                            popUpTo(Routes.RegisterPet.route) {
                                 inclusive = true
                             }
+                            launchSingleTop = true
                         }
                     }
                 )
@@ -80,8 +112,10 @@ fun PetPulseApp() {
 
             composable(Routes.Home.route) {
                 HomeScreen(
-                    petViewModel = petViewModel
-
+                    petViewModel = petViewModel,
+                    onAddPetClick = {
+                        navController.navigate(Routes.RegisterPet.route)
+                    }
                 )
             }
 
@@ -89,8 +123,12 @@ fun PetPulseApp() {
                 AgendaScreen(
                     petViewModel = petViewModel,
                     dailyLogViewModel = dailyLogViewModel,
+                    appointmentViewModel = appointmentViewModel,
                     onDailyRegisterClick = {
                         navController.navigate(Routes.DailyRegister.route)
+                    },
+                    onNewAppointmentClick = { dateMillis ->
+                        navController.navigate(Routes.NewAppointment.createRoute(dateMillis))
                     }
                 )
             }
@@ -98,6 +136,28 @@ fun PetPulseApp() {
                 DailyRegisterScreen(
                     petViewModel = petViewModel,
                     dailyLogViewModel = dailyLogViewModel,
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onSaveClick = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.NewAppointment.route,
+                arguments = listOf(
+                    navArgument("dateMillis") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    }
+                )
+            ) { backStackEntry ->
+                NewAppointmentScreen(
+                    petViewModel = petViewModel,
+                    appointmentViewModel = appointmentViewModel,
+                    initialDateMillis = backStackEntry.arguments?.getLong("dateMillis") ?: -1L,
                     onBackClick = {
                         navController.popBackStack()
                     },
@@ -123,7 +183,19 @@ fun PetPulseApp() {
 
             composable(Routes.Profile.route) {
                 ProfileScreen(
-                    petViewModel = petViewModel
+                    petViewModel = petViewModel,
+                    authViewModel = authViewModel,
+                    onAddPetClick = {
+                        navController.navigate(Routes.RegisterPet.route)
+                    },
+                    onSignedOut = {
+                        navController.navigate(Routes.Auth.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = true
+                            }
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
         }

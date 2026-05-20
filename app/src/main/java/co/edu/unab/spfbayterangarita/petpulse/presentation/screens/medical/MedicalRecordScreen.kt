@@ -23,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import co.edu.unab.spfbayterangarita.petpulse.presentation.components.EmptyPetsState
 import co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel.PetViewModel
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetCard
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetCream
@@ -38,7 +39,12 @@ fun MedicalRecordScreen(
     val selectedPetId = petViewModel.selectedPetId.collectAsState().value
 
     val selectedPet = pets.firstOrNull { it.id == selectedPetId }
-        ?: pets.first()
+        ?: pets.firstOrNull()
+
+    if (selectedPet == null) {
+        EmptyPetsState(message = "Agrega una mascota para construir su expediente médico.")
+        return
+    }
 
     Column(
         modifier = Modifier

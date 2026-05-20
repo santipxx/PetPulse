@@ -14,8 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Pets
-import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -40,6 +40,7 @@ import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetGreen
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetSoftGreen
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetTextDark
 import co.edu.unab.spfbayterangarita.petpulse.ui.theme.PetTextGray
+import co.edu.unab.spfbayterangarita.petpulse.presentation.components.EmptyPetsState
 import co.edu.unab.spfbayterangarita.petpulse.presentation.components.PetSelector
 @Composable
 fun ChatScreen(
@@ -51,7 +52,12 @@ fun ChatScreen(
     val selectedPetId = petViewModel.selectedPetId.collectAsState().value
 
     val selectedPet = pets.firstOrNull { it.id == selectedPetId }
-        ?: pets.first()
+        ?: pets.firstOrNull()
+
+    if (selectedPet == null) {
+        EmptyPetsState(message = "Agrega una mascota para que PetPulse AI pueda analizar sus registros.")
+        return
+    }
 
     val dailyLogs = dailyLogViewModel.dailyLogs.collectAsState().value
     val selectedPetLogs = dailyLogs.filter { it.petId == selectedPet.id }
@@ -138,7 +144,7 @@ fun ChatScreen(
                 }
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Send,
+                    imageVector = Icons.AutoMirrored.Rounded.Send,
                     contentDescription = "Enviar",
                     tint = PetGreen
                 )

@@ -9,5 +9,6 @@ data class Appointment(
     val time: String = "",
     val place: String = "",
     val notes: String = "",
-    val isReminderEnabled: Boolean = true
+    val isReminderEnabled: Boolean = true,
+    val scheduledAtMillis: Long = 0L
 )

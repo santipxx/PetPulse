@@ -1,57 +1,58 @@
 package co.edu.unab.spfbayterangarita.petpulse.presentation.viewmodel
 
+import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import co.edu.unab.spfbayterangarita.petpulse.data.model.Pet
+import co.edu.unab.spfbayterangarita.petpulse.data.remote.PetRemoteDataSource
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class PetViewModel : ViewModel() {
 
-    private val _pets = MutableStateFlow(
-        listOf(
-            Pet(
-                id = "pet_1",
-                ownerId = "user_1",
-                name = "Max",
-                species = "Perro",
-                breed = "Golden Retriever",
-                birthDate = "12 / Mar / 2021",
-                ageText = "3 años",
-                weightKg = 28.5,
-                bloodType = "A+",
-                veterinarianName = "Dr. García",
-                level = 7,
-                xp = 3428,
-                currentStreak = 14,
-                consistencyPercent = 89
-            ),
-            Pet(
-                id = "pet_2",
-                ownerId = "user_1",
-                name = "Luna",
-                species = "Gato",
-                breed = "Criolla",
-                birthDate = "05 / Ene / 2022",
-                ageText = "2 años",
-                weightKg = 4.8,
-                bloodType = "Desconocido",
-                veterinarianName = "Dra. Martínez",
-                level = 3,
-                xp = 1280,
-                currentStreak = 6,
-                consistencyPercent = 74
-            )
-        )
-    )
+    private val auth = FirebaseAuth.getInstance()
+    private val remoteDataSource = PetRemoteDataSource()
 
+    private var petsListener: ListenerRegistration? = null
+    private var currentUserId: String? = null
+
+    private val _pets = MutableStateFlow<List<Pet>>(emptyList())
     val pets: StateFlow<List<Pet>> = _pets
 
-    private val _selectedPetId = MutableStateFlow("pet_1")
+    private val _selectedPetId = MutableStateFlow("")
     val selectedPetId: StateFlow<String> = _selectedPetId
 
-    val selectedPet: Pet
+    val selectedPet: Pet?
         get() = _pets.value.firstOrNull { it.id == _selectedPetId.value }
-            ?: _pets.value.first()
+            ?: _pets.value.firstOrNull()
+
+    private val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        val userId = firebaseAuth.currentUser?.uid
+
+        if (userId == currentUserId) {
+            return@AuthStateListener
+        }
+
+        currentUserId = userId
+        petsListener?.remove()
+        petsListener = null
+
+        if (userId == null) {
+            _pets.value = emptyList()
+            _selectedPetId.value = ""
+        } else {
+            listenToPets(userId)
+        }
+    }
+
+    init {
+        auth.addAuthStateListener(authListener)
+        auth.currentUser?.uid?.let { userId ->
+            currentUserId = userId
+            listenToPets(userId)
+        }
+    }
 
     fun selectPet(petId: String) {
         _selectedPetId.value = petId
@@ -61,11 +62,14 @@ class PetViewModel : ViewModel() {
         name: String,
         species: String,
         breed: String,
-        birthDate: String
+        birthDate: String,
+        photoBitmap: Bitmap?
     ) {
+        val userId = currentUserId ?: return
+        val petId = "pet_${System.currentTimeMillis()}"
         val newPet = Pet(
-            id = "pet_${System.currentTimeMillis()}",
-            ownerId = "user_1",
+            id = petId,
+            ownerId = userId,
             name = name,
             species = species,
             breed = breed,
@@ -78,6 +82,57 @@ class PetViewModel : ViewModel() {
         )
 
         _pets.value = _pets.value + newPet
-        _selectedPetId.value = newPet.id
+        _selectedPetId.value = petId
+        remoteDataSource.savePet(userId, newPet)
+
+        if (photoBitmap != null) {
+            updatePetPhoto(petId, photoBitmap)
+        }
+    }
+
+    fun deleteSelectedPet() {
+        val userId = currentUserId ?: return
+        val petId = _selectedPetId.value.ifBlank { return }
+        val remainingPets = _pets.value.filterNot { it.id == petId }
+
+        _pets.value = remainingPets
+        _selectedPetId.value = remainingPets.firstOrNull()?.id.orEmpty()
+        remoteDataSource.deletePet(userId, petId)
+    }
+
+    fun updatePetPhoto(petId: String, photoBitmap: Bitmap) {
+        val userId = currentUserId ?: return
+
+        remoteDataSource.uploadPetPhoto(
+            userId = userId,
+            petId = petId,
+            bitmap = photoBitmap,
+            onPhotoUploaded = { photoUrl ->
+                _pets.value = _pets.value.map { pet ->
+                    if (pet.id == petId) {
+                        pet.copy(photoUrl = photoUrl)
+                    } else {
+                        pet
+                    }
+                }
+            }
+        )
+    }
+
+    private fun listenToPets(userId: String) {
+        petsListener = remoteDataSource.listenToPets(userId) { pets ->
+            _pets.value = pets
+
+            val selectedPetStillExists = pets.any { it.id == _selectedPetId.value }
+            if (!selectedPetStillExists) {
+                _selectedPetId.value = pets.firstOrNull()?.id.orEmpty()
+            }
+        }
+    }
+
+    override fun onCleared() {
+        petsListener?.remove()
+        auth.removeAuthStateListener(authListener)
+        super.onCleared()
     }
 }

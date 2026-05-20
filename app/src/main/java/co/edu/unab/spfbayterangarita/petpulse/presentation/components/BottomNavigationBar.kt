@@ -1,8 +1,8 @@
 package co.edu.unab.spfbayterangarita.petpulse.presentation.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.Chat
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.Star
@@ -35,7 +35,7 @@ fun BottomNavigationBar(
         BottomNavItem("Home", Routes.Home.route, Icons.Rounded.Home),
         BottomNavItem("Agenda", Routes.Agenda.route, Icons.Rounded.CalendarMonth),
         BottomNavItem("Medical", Routes.Medical.route, Icons.Rounded.MedicalServices),
-        BottomNavItem("Chat", Routes.Chat.route, Icons.Rounded.Chat),
+        BottomNavItem("Chat", Routes.Chat.route, Icons.AutoMirrored.Rounded.Chat),
         BottomNavItem("Profile", Routes.Profile.route, Icons.Rounded.Star)
     )
 
